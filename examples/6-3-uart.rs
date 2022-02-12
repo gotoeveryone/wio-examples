@@ -35,7 +35,7 @@ fn main() -> ! {
         &mut peripherals.NVMCTRL,
     );
 
-    // TODO: UARTドライバオブジェクトを初期化する
+    // UARTドライバオブジェクトを初期化する
     let mut sets: Sets = Pins::new(peripherals.PORT).split();
     let mut serial = sets.uart.init(
         &mut clocks,
@@ -45,12 +45,12 @@ fn main() -> ! {
         &mut sets.port,
     );
 
-    // TODO: 「hello world」と出力する
+    // 「hello world」と出力する
     for c in b"hello world\n".iter() {
         nb::block!(serial.write(*c)).unwrap()
     }
 
-    // TODO: 「this is UART example!」と出力する
+    // 「this is UART example!」と出力する
     writeln!(&mut serial, "this is {} example!", "UART").unwrap();
 
     loop {}
