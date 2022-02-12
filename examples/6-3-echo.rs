@@ -12,7 +12,6 @@
 use panic_halt as _;
 use wio_terminal as wio;
 
-use core::fmt::Write;
 use wio::hal::clock::GenericClockController;
 use wio::pac::Peripherals;
 use wio::prelude::*;
@@ -40,15 +39,11 @@ fn main() -> ! {
         &mut sets.port,
     );
 
-    // 「hello world」と出力する
-    for c in b"hello world\n".iter() {
-        nb::block!(serial.write(*c)).unwrap();
-    }
-    // 「this is UART example!」と出力する
-    writeln!(&mut serial, "this is {} example!", "UART").unwrap();
-
     loop {
-        // TODO: 受信したデータをそのまま送信する
-        
+        // データを 1 ワード受信すると if ブロック内に入る
+        if let Ok(c) = nb::block!(serial.read()) {
+            // 受信したデータをそのまま送信する
+            nb::block!(serial.write(c)).unwrap()
+        }
     }
 }
