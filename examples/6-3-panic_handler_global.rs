@@ -21,9 +21,7 @@ use wio::prelude::*;
 use wio::{entry, Pins, Sets};
 
 // 絶対に初期化しないといけないので、いったんNoneで初期化する
-static mut UART: Option<
-    UART2<Sercom2Pad1<Pb27<PfC>>, Sercom2Pad0<Pb26<PfC>>, (), ()>,
-> = None;
+static mut UART: Option<UART2<Sercom2Pad1<Pb27<PfC>>, Sercom2Pad0<Pb26<PfC>>, (), ()>> = None;
 
 #[entry]
 fn main() -> ! {
@@ -45,12 +43,25 @@ fn main() -> ! {
         &mut sets.port,
     );
 
-    // TODO: グローバル変数に格納されているNoneをSomeで上書きする
+    unsafe {
+        // None が格納されているので Some で上書き
+        UART = Some(serial);
+        // オブジェクトの所有権をムーブしないように as_mut() で可変参照を入手する
+        writeln!(UART.as_mut().unwrap(), "hello {}", "world").unwrap()
+    }
 
-    // TODO: わざとNoneをunwrap()してパニックを発生させる
+    // わざと None を unwrap() してパニックを発生させる
+    let none: Option<usize> = None;
+    none.unwrap();
 
     loop {}
 }
 
-// TODO: パニックハンドラを実装する
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    unsafe {
+        writeln!(UART.as_mut().unwrap(), "panic: {}", info).ok();
+    }
 
+    loop {}
+}

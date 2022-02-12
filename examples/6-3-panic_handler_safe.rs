@@ -24,11 +24,8 @@ use wio::prelude::*;
 use wio::{entry, Pins, Sets};
 
 // 絶対に初期化しないといけないので、いったんNoneを持つRefCellで初期化する
-static UART: Mutex<
-    RefCell<
-        Option<UART2<Sercom2Pad1<Pb27<PfC>>, Sercom2Pad0<Pb26<PfC>>, (), ()>>,
-    >,
-> = Mutex::new(RefCell::new(None));
+static UART: Mutex<RefCell<Option<UART2<Sercom2Pad1<Pb27<PfC>>, Sercom2Pad0<Pb26<PfC>>, (), ()>>>> =
+    Mutex::new(RefCell::new(None));
 
 #[entry]
 fn main() -> ! {
@@ -50,9 +47,19 @@ fn main() -> ! {
         &mut sets.port,
     );
 
-    // TODO: グローバル変数に格納されているNoneを安全にSomeで上書きする
-
-    // TODO: 安全にグローバル変数を使ってhello worldを出力する
+    // interrupt::free() 関数でクリティカルセクション (Critical section) に
+    // 入らないと Mutex の中身を使えない
+    // cs: &CriticalSection はクロージャ内でのみ使えるマーカーオブジェクト
+    // クリティカルセクションで実行する処理はクロージャで渡している
+    // 1 行目は None を Some で置き換える
+    interrupt::free(|cs| UART.borrow(cs).replace(Some(serial)));
+    // グローバル変数 UART に格納した UART ドライバオブジェクトの可変参照を取得して
+    // hello world を出力する
+    interrupt::free(|cs| {
+        if let Some(ref mut serial) = UART.borrow(cs).borrow_mut().deref_mut() {
+            writeln!(serial, "hello world").unwrap()
+        }
+    });
 
     let none: Option<usize> = None;
     none.unwrap();
@@ -62,7 +69,11 @@ fn main() -> ! {
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    // TODO: 安全にグローバル変数を使ってメッセージを出力する
+    interrupt::free(|cs| {
+        if let Some(ref mut serial) = UART.borrow(cs).borrow_mut().deref_mut() {
+            let _ = writeln!(serial, "panic: {}", info);
+        }
+    });
 
     loop {}
 }
