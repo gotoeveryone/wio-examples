@@ -23,14 +23,61 @@ use wio::prelude::*; // 主要な構造体やトレイトをインポートす�
 fn main() -> ! {
     let peripherals = Peripherals::take().unwrap();
     let mut pins = wio::Pins::new(peripherals.PORT);
+    // LED ドライバオブジェクトを初期化する
+    let mut led = Led::new(pins.user_led, &mut pins.port);
+    // ボタンドライバオブジェクトを初期化する
+    let button1 = Button1::new(pins.button1, &mut pins.port);
 
     // TODO: ボタン1を押している間、LEDが点灯するコードを書く
 
-    loop {}
+    loop {
+        if button1.is_pressed() {
+            led.turn_on()
+        } else {
+            led.turn_off()
+        }
+    }
 }
 
 // Wio Terminalのボタン1ドライバ
 // TODO: Button1 を実装する
+struct Button1 {
+    pin: Pc26<Input<Floating>>,
+}
+
+impl Button1 {
+    // PC26 ピンを入力モードに設定する
+    fn new(pin: Pc26<Input<Floating>>, port: &mut Port) -> Button1 {
+        Button1 {
+            pin: pin.into_floating_input(port),
+        }
+    }
+    fn is_pressed(&self) -> bool {
+        self.pin.is_low().unwrap()
+    }
+    fn is_released(&self) -> bool {
+        self.pin.is_high().unwrap()
+    }
+}
 
 // Wio TerminalのユーザーLEDドライバ
-// TODO: Led を実装する
+pub struct Led {
+    pin: Pa15<Output<PushPull>>,
+}
+
+impl Led {
+    pub fn new(pin: Pa15<Input<Floating>>, port: &mut Port) -> Led {
+        Led {
+            pin: pin.into_push_pull_output(port),
+        }
+    }
+    pub fn turn_on(&mut self) {
+        self.pin.set_high().unwrap();
+    }
+    pub fn turn_off(&mut self) {
+        self.pin.set_low().unwrap();
+    }
+    pub fn toggle(&mut self) {
+        self.pin.toggle();
+    }
+}

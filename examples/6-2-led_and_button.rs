@@ -20,8 +20,18 @@ use wio::prelude::*; // 主要な構造体やトレイトをインポートす�
 fn main() -> ! {
     let peripherals = Peripherals::take().unwrap();
     let mut pins = wio::Pins::new(peripherals.PORT);
+    // ユーザー LED を出力状態にする
+    let mut led = pins.user_led.into_push_pull_output(&mut pins.port);
+    // ボタン 1 を入力状態に設定する
+    let button1 = pins.button1.into_floating_input(&mut pins.port);
 
-    // TODO: ボタン1を押している間、LEDが点灯するコードを書く
-
-    loop {}
+    loop {
+        if button1.is_low().unwrap() {
+            // ボタンが押されていればユーザー LED を点灯する
+            led.set_high().unwrap();
+        } else {
+            // ボタンが押されていなければユーザー LED を消灯する
+            led.set_low().unwrap();
+        }
+    }
 }
